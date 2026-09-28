@@ -22,7 +22,7 @@ Sem proteção da região crítica, várias threads podem ler e alterar o mesmo 
 **Resultado do teste:**
 
 - Requisições enviadas: 30
-- Contador final: **[PREENCHER]**
+- Contador final: 30
 - Sincronização: não
 
 O valor final ficou diferente de 30 porque algumas atualizações foram sobrescritas durante o acesso concorrente.
