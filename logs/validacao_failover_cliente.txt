@@ -1,0 +1,13 @@
+PRIMARIA indisponivel: Connection refused
+Conectado em BACKUP -> OK|CONECTADO|BACKUP|ATIVO
+
+Comandos:
+  LISTAR
+  RESERVAR|<assento>   (usuario preenchido automaticamente)
+  CANCELAR|<assento>   (usuario preenchido automaticamente)
+  STATUS               (UDP)
+  SAIR
+
+bob> OK|RESERVADO
+bob> STATUS|CLIENTES=1|REQ=2|RESERVADOS=2|PAPEL=BACKUP|ATIVO|SYNC=SIM|VERSAO=2
+bob> BYE

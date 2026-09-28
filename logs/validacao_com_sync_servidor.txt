@@ -1,0 +1,32 @@
+PRIMARIA iniciada | TCP=5000 UDP=6000 | sincronizacao=COM
+Aguardando clientes...
+[THREAD=Client-/127.0.0.1:58956] REQ contador antes=0 depois=1 | RESERVAR assento=1 user=cliente1
+[THREAD=Client-/127.0.0.1:58958] REQ contador antes=1 depois=2 | RESERVAR assento=1 user=cliente2
+[THREAD=Client-/127.0.0.1:58954] REQ contador antes=2 depois=3 | RESERVAR assento=1 user=cliente3
+[THREAD=Client-/127.0.0.1:58958] REQ contador antes=3 depois=4 | RESERVAR assento=2 user=cliente2
+[THREAD=Client-/127.0.0.1:58956] REQ contador antes=4 depois=5 | RESERVAR assento=2 user=cliente1
+[THREAD=Client-/127.0.0.1:58958] REQ contador antes=5 depois=6 | RESERVAR assento=3 user=cliente2
+[THREAD=Client-/127.0.0.1:58954] REQ contador antes=6 depois=7 | RESERVAR assento=2 user=cliente3
+[THREAD=Client-/127.0.0.1:58958] REQ contador antes=7 depois=8 | RESERVAR assento=4 user=cliente2
+[THREAD=Client-/127.0.0.1:58956] REQ contador antes=8 depois=9 | RESERVAR assento=3 user=cliente1
+[THREAD=Client-/127.0.0.1:58958] REQ contador antes=9 depois=10 | RESERVAR assento=5 user=cliente2
+[THREAD=Client-/127.0.0.1:58954] REQ contador antes=10 depois=11 | RESERVAR assento=3 user=cliente3
+[THREAD=Client-/127.0.0.1:58958] REQ contador antes=11 depois=12 | RESERVAR assento=6 user=cliente2
+[THREAD=Client-/127.0.0.1:58956] REQ contador antes=12 depois=13 | RESERVAR assento=4 user=cliente1
+[THREAD=Client-/127.0.0.1:58958] REQ contador antes=13 depois=14 | RESERVAR assento=7 user=cliente2
+[THREAD=Client-/127.0.0.1:58954] REQ contador antes=14 depois=15 | RESERVAR assento=4 user=cliente3
+[THREAD=Client-/127.0.0.1:58958] REQ contador antes=15 depois=16 | RESERVAR assento=8 user=cliente2
+[THREAD=Client-/127.0.0.1:58956] REQ contador antes=16 depois=17 | RESERVAR assento=5 user=cliente1
+[THREAD=Client-/127.0.0.1:58958] REQ contador antes=17 depois=18 | RESERVAR assento=9 user=cliente2
+[THREAD=Client-/127.0.0.1:58954] REQ contador antes=18 depois=19 | RESERVAR assento=5 user=cliente3
+[THREAD=Client-/127.0.0.1:58958] REQ contador antes=19 depois=20 | RESERVAR assento=10 user=cliente2
+[THREAD=Client-/127.0.0.1:58956] REQ contador antes=20 depois=21 | RESERVAR assento=6 user=cliente1
+[THREAD=Client-/127.0.0.1:58954] REQ contador antes=21 depois=22 | RESERVAR assento=6 user=cliente3
+[THREAD=Client-/127.0.0.1:58956] REQ contador antes=22 depois=23 | RESERVAR assento=7 user=cliente1
+[THREAD=Client-/127.0.0.1:58954] REQ contador antes=23 depois=24 | RESERVAR assento=7 user=cliente3
+[THREAD=Client-/127.0.0.1:58956] REQ contador antes=24 depois=25 | RESERVAR assento=8 user=cliente1
+[THREAD=Client-/127.0.0.1:58954] REQ contador antes=25 depois=26 | RESERVAR assento=8 user=cliente3
+[THREAD=Client-/127.0.0.1:58956] REQ contador antes=26 depois=27 | RESERVAR assento=9 user=cliente1
+[THREAD=Client-/127.0.0.1:58954] REQ contador antes=27 depois=28 | RESERVAR assento=9 user=cliente3
+[THREAD=Client-/127.0.0.1:58956] REQ contador antes=28 depois=29 | RESERVAR assento=10 user=cliente1
+[THREAD=Client-/127.0.0.1:58954] REQ contador antes=29 depois=30 | RESERVAR assento=10 user=cliente3

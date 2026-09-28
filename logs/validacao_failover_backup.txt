@@ -1,0 +1,3 @@
+BACKUP iniciada | TCP=5001 UDP=6001 REPL=7001 | aguardando primaria
+[FAILOVER] Primaria sem heartbeat por >3s. BACKUP PROMOVIDO A ATIVO.
+[THREAD=BackupClient-/127.0.0.1:34936] REQ contador antes=1 depois=2 | RESERVAR assento=26 user=bob

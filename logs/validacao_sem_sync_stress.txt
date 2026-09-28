@@ -1,0 +1,47 @@
+=== TESTE DE CONCORRENCIA: 3 clientes x 10 requisicoes = 30 ===
+Todos disputam os mesmos assentos 1..10 para expor a corrida check-then-write.
+cliente1 conectado: OK|CONECTADO|PRIMARIA
+cliente3 conectado: OK|CONECTADO|PRIMARIA
+cliente2 conectado: OK|CONECTADO|PRIMARIA
+
+--- RESPOSTAS DOS 30 PEDIDOS ---
+cliente1 -> assento 1 -> OK|RESERVADO
+cliente1 -> assento 10 -> OK|RESERVADO
+cliente1 -> assento 2 -> OK|RESERVADO
+cliente1 -> assento 3 -> OK|RESERVADO
+cliente1 -> assento 4 -> OK|RESERVADO
+cliente1 -> assento 5 -> OK|RESERVADO
+cliente1 -> assento 6 -> OK|RESERVADO
+cliente1 -> assento 7 -> OK|RESERVADO
+cliente1 -> assento 8 -> OK|RESERVADO
+cliente1 -> assento 9 -> OK|RESERVADO
+cliente2 -> assento 1 -> OK|RESERVADO
+cliente2 -> assento 10 -> OK|RESERVADO
+cliente2 -> assento 2 -> OK|RESERVADO
+cliente2 -> assento 3 -> OK|RESERVADO
+cliente2 -> assento 4 -> OK|RESERVADO
+cliente2 -> assento 5 -> OK|RESERVADO
+cliente2 -> assento 6 -> OK|RESERVADO
+cliente2 -> assento 7 -> OK|RESERVADO
+cliente2 -> assento 8 -> OK|RESERVADO
+cliente2 -> assento 9 -> OK|RESERVADO
+cliente3 -> assento 1 -> OK|RESERVADO
+cliente3 -> assento 10 -> OK|RESERVADO
+cliente3 -> assento 2 -> OK|RESERVADO
+cliente3 -> assento 3 -> OK|RESERVADO
+cliente3 -> assento 4 -> OK|RESERVADO
+cliente3 -> assento 5 -> OK|RESERVADO
+cliente3 -> assento 6 -> OK|RESERVADO
+cliente3 -> assento 7 -> OK|RESERVADO
+cliente3 -> assento 8 -> OK|RESERVADO
+cliente3 -> assento 9 -> OK|RESERVADO
+
+--- RESUMO DO CLIENTE DE TESTE ---
+Total enviado: 30
+Respostas OK: 30
+Respostas ERRO: 0
+Observacao: no modo SEM sincronizacao pode haver mais de um OK para o mesmo assento.
+
+--- STATUS UDP DO SERVIDOR ---
+STATUS|CLIENTES=0|REQ=10|RESERVADOS=10|PAPEL=PRIMARIA|ATIVO|SYNC=NAO|VERSAO=30
+Compare REQ com 30. COM sincronizacao deve ser 30/30; SEM sincronizacao tende a perder incrementos.
