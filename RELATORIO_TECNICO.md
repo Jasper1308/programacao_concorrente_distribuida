@@ -1,160 +1,103 @@
-# Relatório Técnico - Sistema de Reservas: Concorrência, Sincronização e Distribuição
+# Relatório Técnico — Sistema de Reservas
 
 **Disciplina:** Programação Concorrente e Distribuída  
-**Instituição:** IFSC - Câmpus Gaspar  
-**Linguagem:** Java  
+**Curso:** Análise e Desenvolvimento de Sistemas — IFSC Câmpus Gaspar
 
 ## 1. Objetivo
 
-O projeto implementa um sistema de reservas de assentos para um evento, com múltiplos clientes acessando o serviço simultaneamente. O objetivo principal é demonstrar, de forma experimental, uma condição de corrida sobre dados compartilhados, aplicar sincronização para corrigir a inconsistência e executar o serviço com duas réplicas, mantendo disponibilidade em caso de falha de uma delas.
+A atividade teve como objetivo desenvolver um sistema simples de reservas para demonstrar, na prática, conceitos de concorrência, sincronização, comunicação em rede, replicação e tolerância a falhas.
 
-A comunicação principal utiliza TCP. Cada conexão aceita pelo servidor é atendida em uma thread própria. A consulta de estado `STATUS` utiliza UDP. Para a parte distribuída foi adotada uma estratégia de replicação primária-backup.
+O sistema possui 50 assentos e permite que vários clientes se conectem ao mesmo tempo para listar, reservar e cancelar assentos.
 
-## 2. Arquitetura
+## 2. Concorrência e condição de corrida
 
-A solução é formada por cinco componentes:
+Cada cliente conectado ao servidor é atendido por uma thread própria. Como todas as threads acessam o mesmo estado dos assentos e o mesmo contador de requisições, podem ocorrer problemas caso esse acesso não seja controlado.
 
-1. **Réplica primária:** recebe normalmente as operações dos clientes pela porta TCP 5000 e responde ao `STATUS` pela porta UDP 6000.
-2. **Réplica backup:** recebe o estado replicado pela porta TCP 7001, atende `STATUS` pela porta UDP 6001 e mantém uma porta TCP 5001 para assumir os clientes em caso de falha da primária.
-3. **Clientes interativos:** permitem listar, reservar e cancelar assentos.
-4. **Cliente de teste concorrente:** cria três conexões simultâneas e executa dez reservas por conexão, totalizando 30 requisições.
-5. **Cliente UDP:** envia `STATUS` sem criar uma conexão TCP.
+Para demonstrar isso, foi realizado um teste com **3 clientes**, cada um enviando **10 requisições**, totalizando **30 requisições concorrentes**.
 
-Em operação normal, o backup permanece passivo. A primária envia snapshots de estado após as operações e também periodicamente como heartbeat. Se o backup deixar de receber a primária por mais de aproximadamente três segundos, ele é promovido a ativo.
+### Teste sem sincronização
 
-## 3. Protocolo de aplicação
+Sem proteção da região crítica, várias threads podem ler e alterar o mesmo valor praticamente ao mesmo tempo. Isso gera uma condição de corrida e pode causar perda de atualizações.
 
-| Comando | Transporte | Função | Resposta |
-|---|---|---|---|
-| `RESERVAR|<assento>|<user>` | TCP | Reservar assento | `OK|RESERVADO` ou `ERRO|motivo` |
-| `CANCELAR|<assento>|<user>` | TCP | Cancelar uma reserva | `OK|CANCELADO` ou `ERRO|motivo` |
-| `LISTAR` | TCP | Listar assentos livres | `LISTA|1,4,7,...` |
-| `STATUS` | UDP | Consultar estado da réplica | `STATUS|CLIENTES=...|REQ=...` |
-| `SAIR` | TCP | Encerrar sessão | `BYE` |
+**Resultado do teste:**
 
-## 4. Experimento de concorrência
+- Requisições enviadas: 30
+- Contador final: **[PREENCHER]**
+- Sincronização: não
 
-### 4.1 Recurso compartilhado e região crítica
+O valor final ficou diferente de 30 porque algumas atualizações foram sobrescritas durante o acesso concorrente.
 
-Os recursos compartilhados são o vetor lógico de assentos e o contador de requisições processadas. A região crítica corresponde à sequência de operações de leitura e escrita necessária para verificar o estado atual e atualizar esses recursos.
+### Teste com sincronização
 
-Uma reserva não é apenas uma escrita isolada. Ela envolve uma operação composta de **check-then-act**:
+O mesmo teste foi repetido utilizando `synchronized` para proteger a região crítica.
 
-1. verificar se o assento está livre;
-2. decidir se a reserva pode ser feita;
-3. gravar o usuário como proprietário do assento.
+**Resultado:**
 
-Da mesma forma, o incremento do contador envolve ler o valor atual e depois gravar `valor + 1`. Sem exclusão mútua, duas ou mais threads podem ler o mesmo valor anterior e sobrescrever a atualização umas das outras.
+- Requisições enviadas: 30
+- Requisições processadas: 30
+- Sincronização: sim
 
-### 4.2 Teste sem sincronização
+Com a sincronização, somente uma thread por vez executa a parte protegida do código, evitando a perda de atualizações.
 
-O teste usa três clientes simultâneos, cada um enviando dez requisições. Os três disputam os mesmos assentos de 1 a 10, o que amplia intencionalmente a janela de concorrência.
+## 3. Comunicação TCP e UDP
 
-Também existe um pequeno atraso artificial dentro da região crítica exclusivamente para tornar a condição de corrida facilmente reproduzível durante a demonstração.
+As operações principais do sistema utilizam TCP, como:
 
-Na execução de validação deste projeto, foram observados:
+- listar assentos;
+- reservar;
+- cancelar;
+- encerrar conexão.
 
-| Métrica | Resultado |
-|---|---:|
-| Requisições enviadas | 30 |
-| Contador final do servidor (`REQ`) | 10 |
-| Respostas `OK` de reserva | 30 |
-| Assentos efetivamente ocupados | 10 |
+O TCP foi utilizado por fornecer comunicação confiável e ordenada.
 
-O resultado é inconsistente por dois motivos. Primeiro, houve perda de atualizações no contador: três threads leram repetidamente o mesmo valor anterior, portanto 30 requisições resultaram em apenas 10 incrementos observáveis. Segundo, vários clientes receberam `OK` para o mesmo assento, embora no estado final exista apenas um proprietário.
+Também foi implementada uma consulta de status via UDP. Nesse caso, o UDP é suficiente porque a consulta não altera o estado do sistema e pode ser realizada novamente caso algum pacote seja perdido.
 
-Exemplo de log:
+## 4. Replicação e tolerância a falhas
 
-```text
-[THREAD=Client-A] REQ contador antes=0 depois=1
-[THREAD=Client-B] REQ contador antes=0 depois=1
-[THREAD=Client-C] REQ contador antes=0 depois=1
-```
+O sistema utiliza dois servidores:
 
-Esse comportamento caracteriza a condição de corrida: o resultado depende da ordem de interleaving entre as threads e não representa corretamente todas as operações executadas.
+- **Servidor primário**
+- **Servidor backup**
 
-### 4.3 Teste com sincronização
+Em funcionamento normal, o servidor primário atende os clientes e envia seu estado atualizado ao backup.
 
-Na segunda execução foi utilizado `synchronized (criticalSection)` em torno da região crítica. O mesmo teste de 30 requisições foi repetido sem alterar a quantidade de clientes ou o padrão de acesso.
+O backup mantém uma cópia das reservas e permanece passivo enquanto a primária está ativa.
 
-Na execução de validação foram observados:
+Caso a primária deixe de responder por alguns segundos, o backup detecta a falha e passa para o estado ativo. O cliente então tenta se conectar ao backup e continua utilizando o sistema com o estado que já havia sido replicado.
 
-| Métrica | Resultado |
-|---|---:|
-| Requisições enviadas | 30 |
-| Contador final do servidor (`REQ`) | 30 |
-| Reservas válidas | 10 |
-| Requisições rejeitadas por assento ocupado | 20 |
-| Assentos efetivamente ocupados | 10 |
+A estratégia utilizada foi **primária-backup**, escolhida por ser simples e suficiente para demonstrar replicação e tolerância a falhas na atividade.
 
-O total de reservas válidas é 10 porque os três clientes disputam os mesmos dez assentos. O ponto relevante é que as 30 requisições foram processadas corretamente e cada assento terminou com, no máximo, um proprietário. As outras 20 tentativas foram rejeitadas de forma consistente.
+## 5. Região crítica
 
-O mecanismo funciona porque, durante a região crítica, apenas uma thread por vez pode executar a sequência de verificação e atualização. Assim, não existe interleaving entre o teste de disponibilidade e a gravação do assento.
+O principal recurso compartilhado é o estado dos assentos.
 
-## 5. Sistema distribuído e replicação
+A região crítica corresponde à parte do código em que o servidor verifica se um assento está disponível e depois altera seu estado.
 
-A estratégia escolhida foi **primária-backup**. A primária é responsável pelas operações normais de escrita. O backup recebe snapshots contendo o vetor de assentos, o contador de requisições e uma versão monotônica do estado.
+Essas operações precisam ser protegidas juntas para evitar que duas threads reservem o mesmo assento ou alterem o mesmo dado ao mesmo tempo.
 
-Após cada operação, a primária tenta enviar o snapshot ao backup e aguarda um ACK. Além disso, snapshots periódicos servem como heartbeat e também permitem atualizar o backup durante a execução.
+## 6. Desconexão de cliente
 
-Foi usada uma numeração de versão para impedir que uma atualização antiga, recebida fora de ordem, sobrescreva um snapshot mais novo.
+Como cada cliente é atendido por uma thread separada, a desconexão de um cliente não encerra o servidor.
 
-Essa estratégia foi escolhida por ser mais simples de implementar e demonstrar do que quorum ou consenso completo, ao mesmo tempo em que permite manter uma segunda cópia do estado e realizar failover.
+A thread daquele cliente é finalizada e os demais continuam sendo atendidos normalmente.
 
-## 6. Tolerância a falhas
+## 7. Limitações
 
-Quando a primária cai, o backup deixa de receber os heartbeats. Após aproximadamente três segundos, ele muda de `PASSIVO` para `ATIVO`. O cliente possui os dois endereços configurados e, ao detectar a quebra da conexão com a primária, tenta a réplica seguinte.
+A solução foi desenvolvida para fins acadêmicos e possui algumas limitações:
 
-Na validação do projeto, uma reserva foi feita na primária e apareceu no `STATUS` do backup com a mesma versão. Depois que a primária foi encerrada, o backup foi promovido e uma nova reserva foi processada normalmente pela porta TCP 5001.
+- os dados ficam armazenados apenas em memória;
+- não existe autenticação de usuários;
+- a detecção de falha da primária utiliza um tempo limite simples;
+- a replicação utilizada é simplificada em relação a sistemas distribuídos reais.
 
-Para reduzir risco de duplicação durante o failover, reservar o mesmo assento novamente com o mesmo usuário é tratado de forma idempotente. Isso cobre o caso em que a primária aplicou e replicou uma reserva, mas caiu antes de a resposta chegar ao cliente.
+Mesmo assim, a implementação atende aos objetivos da atividade e permite demonstrar os principais conceitos estudados.
 
-## 7. TCP e UDP
+## 8. Conclusão
 
-O TCP foi escolhido para as operações principais de reserva porque oferece comunicação orientada à conexão, entrega confiável e preservação da ordem dos bytes. Isso é adequado para comandos que alteram o estado do sistema.
+A atividade permitiu observar na prática como o acesso simultâneo a um recurso compartilhado pode causar inconsistências.
 
-O UDP foi usado no comando `STATUS` por ser uma consulta pequena e independente, sem necessidade de manter uma conexão. Nesse caso, perder uma resposta não altera o estado do sistema; o cliente pode simplesmente consultar novamente.
+Sem sincronização, ocorreram perdas de atualização causadas pela condição de corrida. Com o uso de `synchronized`, o mesmo teste passou a produzir um resultado consistente.
 
-## 8. Respostas às perguntas do relatório
+Também foram utilizados TCP e UDP para diferentes tipos de comunicação, além de dois servidores com replicação primária-backup e failover.
 
-### 1. O que caracteriza este sistema como distribuído?
-
-O sistema possui múltiplos processos de servidor independentes, acessíveis pela rede, que mantêm cópias do mesmo estado e cooperam por meio de mensagens de replicação. Além disso, o cliente pode mudar de uma réplica para outra quando ocorre uma falha.
-
-### 2. Qual é o recurso compartilhado e qual é a região crítica?
-
-Os principais recursos compartilhados são os assentos e o contador de requisições. A região crítica é a sequência em que o servidor lê o estado atual, verifica uma condição e realiza a atualização correspondente. No código, ela é protegida pelo bloco `synchronized (criticalSection)` quando o modo sincronizado está ativo.
-
-### 3. O que é uma condição de corrida e como foi produzida?
-
-É uma situação em que o resultado depende da ordem de execução concorrente das threads. Foi produzida removendo a exclusão mútua e executando três clientes simultâneos. Um atraso curto dentro da operação aumenta a chance de múltiplas threads lerem o mesmo valor antes de qualquer uma concluir a escrita.
-
-### 4. Qual foi a inconsistência numérica observada?
-
-Na execução de validação sem sincronização, 30 requisições foram enviadas, mas o contador final indicou `REQ=10`. Com sincronização, o mesmo teste terminou em `REQ=30`.
-
-### 5. Como a sincronização resolve o problema?
-
-O `synchronized` garante exclusão mútua sobre a região crítica. Enquanto uma thread verifica e atualiza o estado, as demais aguardam. Isso impede perda de incrementos e evita que dois clientes confirmem corretamente a mesma reserva ao mesmo tempo.
-
-### 6. Qual estratégia de replicação foi usada e por quê?
-
-Foi utilizada primária-backup. Ela foi escolhida por permitir uma implementação direta: uma réplica processa as escritas e envia o estado à outra, reduzindo a complexidade em comparação com algoritmos completos de consenso.
-
-### 7. O que acontece quando uma réplica cai?
-
-Se o backup cair, a primária continua atendendo e apenas registra que a replicação está indisponível. Se a primária cair, o backup detecta a ausência de heartbeat, torna-se ativo e o cliente tenta se reconectar a ele.
-
-### 8. Qual a diferença entre TCP e UDP e onde foram usados?
-
-TCP é orientado à conexão, confiável e ordenado; foi usado em `LISTAR`, `RESERVAR`, `CANCELAR`, `SAIR` e na replicação. UDP não é orientado à conexão e não garante entrega ou ordem; foi usado apenas na consulta `STATUS`.
-
-### 9. Quais são as limitações conhecidas?
-
-A solução é acadêmica e possui limitações importantes: não implementa consenso real; pode existir split-brain em cenários de particionamento de rede mais complexos; o estado é mantido apenas em memória; não existe autenticação; os endereços e portas são fixos; e o mecanismo de failover depende de um timeout simples de heartbeat. Em produção seriam necessários persistência, autenticação, descoberta de serviço, TLS e um protocolo de consenso ou armazenamento transacional adequado.
-
-## 9. Conclusão
-
-O experimento mostra que o simples uso de múltiplas threads não garante consistência. A execução sem sincronização produz resultados incorretos porque várias threads modificam o mesmo estado sem exclusão mútua. Com a proteção da região crítica, as 30 requisições são contabilizadas corretamente e a regra de uma única reserva por assento é preservada.
-
-A adição de uma segunda réplica amplia o problema para o contexto distribuído. A estratégia primária-backup permite manter uma cópia do estado e continuar atendendo após a queda da primária, demonstrando na prática concorrência, sincronização, comunicação TCP/UDP, replicação e tolerância a falhas.
+Com isso, o projeto reuniu os principais conceitos de concorrência, sincronização, comunicação em rede, sistemas distribuídos e tolerância a falhas.
